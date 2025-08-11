@@ -10,7 +10,8 @@ import {
   where, 
   orderBy,
   Timestamp,
-  setDoc 
+  setDoc,
+  limit 
 } from "firebase/firestore";
 import { db } from "./firebase-config";
 import type { 
@@ -101,6 +102,27 @@ export class FirebaseStorage implements IStorage {
     } catch (error) {
       console.error("Error getting client:", error);
       throw new Error("Failed to get client from Firebase");
+    }
+  }
+
+  async getClientByName(name: string): Promise<Client | undefined> {
+    try {
+      const clientsQuery = query(
+        collection(db, "clients"),
+        where("name", "==", name),
+        limit(1)
+      );
+      const snapshot = await getDocs(clientsQuery);
+      
+      if (snapshot.empty) {
+        return undefined;
+      }
+
+      const doc = snapshot.docs[0];
+      return { id: doc.id, ...doc.data() } as Client;
+    } catch (error) {
+      console.error("Error getting client by name:", error);
+      throw new Error("Failed to get client by name from Firebase");
     }
   }
 

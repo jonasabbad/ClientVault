@@ -163,25 +163,22 @@ export default function Clients() {
                     </div>
                   
                   <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Payment Codes</h4>
-                    {client.paymentCodes.length > 0 ? (
-                      <div className="space-y-2">
-                        {client.paymentCodes.map((code) => (
-                          <div key={code.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <div className="flex items-center">
-                              <div 
-                                className="w-3 h-3 rounded-full mr-2"
-                                style={{ backgroundColor: code.service.color }}
-                              />
-                              <span className="text-sm font-medium">{code.service.name}</span>
-                            </div>
-                            <span className="text-sm font-mono text-gray-600">{code.code}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 italic">No payment codes</p>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      {client.paymentCodes.slice(0, 4).map((code) => (
+                        <div
+                          key={code.id}
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: code.service.color }}
+                          title={code.service.name}
+                        />
+                      ))}
+                      {client.paymentCodes.length > 4 && (
+                        <span className="text-xs text-gray-500">+{client.paymentCodes.length - 4}</span>
+                      )}
+                      {client.paymentCodes.length === 0 && (
+                        <span className="text-sm text-gray-400">No payment codes</span>
+                      )}
+                    </div>
                   </div>
                   
                     <div className="flex space-x-2">

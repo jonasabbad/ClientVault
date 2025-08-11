@@ -10,11 +10,11 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowLeft, Edit, Trash2, Plus, Phone, User, CreditCard, Calendar, Printer } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Plus, Phone, User, CreditCard, Calendar, Printer, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertPaymentCodeSchema, type InsertPaymentCode } from "@shared/schema";
+import { insertPaymentCodeSchema, type InsertPaymentCode, type ClientWithCodes, type Service } from "@shared/schema";
 import { printThermalReceipt } from "@/components/thermal-print";
 
 export default function ClientDetails() {
@@ -25,14 +25,15 @@ export default function ClientDetails() {
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddCodeDialogOpen, setIsAddCodeDialogOpen] = useState(false);
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
 
   // Fetch client data
-  const { data: client, isLoading } = useQuery({
+  const { data: client, isLoading } = useQuery<ClientWithCodes>({
     queryKey: ["/api/clients", id],
   });
 
   // Fetch services for payment code creation
-  const { data: services = [] } = useQuery({
+  const { data: services = [] } = useQuery<Service[]>({
     queryKey: ["/api/services"],
   });
 
@@ -151,6 +152,25 @@ export default function ClientDetails() {
     }
   };
 
+  const handleCopyCode = async (code: string, codeId: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCodeId(codeId);
+      toast({ title: "Payment code copied!" });
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedCodeId(null);
+      }, 2000);
+    } catch (error) {
+      toast({ 
+        title: "Copy failed", 
+        description: "Could not copy to clipboard",
+        variant: "destructive" 
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -246,7 +266,7 @@ export default function ClientDetails() {
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Created</p>
                   <p className="font-medium dark:text-gray-100">
-                    {client.createdAt ? new Date(client.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                    {client.createdAt ? new Date(client.createdAt).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -292,7 +312,7 @@ export default function ClientDetails() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {services.map((service: any) => (
+                                  {services.map((service) => (
                                     <SelectItem key={service.id} value={service.id}>
                                       {service.name}
                                     </SelectItem>
@@ -344,29 +364,45 @@ export default function ClientDetails() {
               </div>
             </CardHeader>
             <CardContent>
-              {client.paymentCodes && client.paymentCodes.length > 0 ? (
+              {client?.paymentCodes && client.paymentCodes.length > 0 ? (
                 <div className="space-y-3">
-                  {client.paymentCodes.map((code: any) => (
-                    <div key={code.id} className="flex items-center justify-between p-3 border rounded-lg dark:border-gray-600">
+                  {client.paymentCodes.map((code) => (
+                    <div key={code.id} className="flex items-center justify-between p-4 border rounded-lg dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-4 h-4 rounded-full"
                           style={{ backgroundColor: code.service?.color || '#6B7280' }}
                         />
                         <div>
-                          <p className="font-medium dark:text-gray-100">{code.service?.name || 'Unknown Service'}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Code: {code.code}</p>
+                          <p className="font-semibold dark:text-gray-100">{code.service?.name || 'Unknown Service'}</p>
+                          <p className="text-lg font-mono font-bold text-gray-900 dark:text-gray-100">{code.code}</p>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deletePaymentCodeMutation.mutate(code.id)}
-                        disabled={deletePaymentCodeMutation.isPending}
-                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyCode(code.code, code.id)}
+                          className="dark:border-gray-600 dark:text-gray-100"
+                          title="Copy payment code"
+                        >
+                          {copiedCodeId === code.id ? (
+                            <Check className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deletePaymentCodeMutation.mutate(code.id)}
+                          disabled={deletePaymentCodeMutation.isPending}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          title="Delete payment code"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

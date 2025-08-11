@@ -15,6 +15,7 @@ import { randomUUID } from "crypto";
 export interface IStorage {
   // Client operations
   getClient(id: string): Promise<Client | undefined>;
+  getClientByName(name: string): Promise<Client | undefined>;
   getClientWithCodes(id: string): Promise<ClientWithCodes | undefined>;
   getAllClients(): Promise<ClientWithCodes[]>;
   createClient(client: InsertClient): Promise<Client>;
@@ -84,6 +85,15 @@ export class MemStorage implements IStorage {
 
   async getClient(id: string): Promise<Client | undefined> {
     return this.clients.get(id);
+  }
+
+  async getClientByName(name: string): Promise<Client | undefined> {
+    for (const client of this.clients.values()) {
+      if (client.name === name) {
+        return client;
+      }
+    }
+    return undefined;
   }
 
   async getClientWithCodes(id: string): Promise<ClientWithCodes | undefined> {

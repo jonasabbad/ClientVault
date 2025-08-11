@@ -204,7 +204,7 @@ export default function Dashboard() {
                         
                           <div className="flex items-center space-x-2">
                             <div className="flex space-x-1">
-                              {client.paymentCodes.slice(0, 3).map((code) => (
+                              {client.paymentCodes.slice(0, 4).map((code) => (
                                 <span
                                   key={code.id}
                                   className="w-3 h-3 rounded-full"
@@ -213,8 +213,8 @@ export default function Dashboard() {
                                 />
                               ))}
                             </div>
-                            {client.paymentCodes.length > 3 && (
-                              <span className="text-xs text-gray-500">+{client.paymentCodes.length - 3}</span>
+                            {client.paymentCodes.length > 4 && (
+                              <span className="text-xs text-gray-500">+{client.paymentCodes.length - 4}</span>
                             )}
                           </div>
                         

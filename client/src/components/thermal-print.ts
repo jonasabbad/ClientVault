@@ -25,50 +25,54 @@ export function createThermalPrint(client: ClientWithCodes, settings?: PrintSett
     ">
       <!-- Header -->
       <div style="text-align: center; margin-bottom: 4mm; border-bottom: 1px dashed #000; padding-bottom: 2mm;">
-        <div style="font-size: 14px; font-weight: bold; margin-bottom: 1mm;">
-          ${settings?.companyName || 'INEX CASH'}
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 2mm;">
+          RECU DE PAIEMENT
         </div>
-        ${settings?.companyAddress ? `<div style="font-size: 9px; margin-bottom: 1mm;">${settings.companyAddress}</div>` : ''}
-        ${settings?.companyPhone ? `<div style="font-size: 9px; margin-bottom: 1mm;">Tel: ${settings.companyPhone}</div>` : ''}
-        <div style="font-size: 10px; font-weight: bold;">RECU DE PAIEMENT</div>
+        <div style="font-size: 10px;">
+          ${dateStr} - ${timeStr}
+        </div>
       </div>
 
       <!-- Client Info -->
-      <div style="margin-bottom: 4mm;">
-        <div style="font-size: 11px; font-weight: bold; margin-bottom: 1mm;">CLIENT:</div>
-        <div style="font-size: 10px; margin-left: 2mm;">
-          <div style="margin-bottom: 0.5mm;">Nom: ${client.name}</div>
-          <div style="margin-bottom: 0.5mm;">Tel: ${client.phone}</div>
+      <div style="margin-bottom: 4mm; padding: 2mm; background: #f9f9f9; border-radius: 2mm;">
+        <div style="font-size: 12px; font-weight: bold; margin-bottom: 2mm; text-align: center;">
+          ${client.name.toUpperCase()}
+        </div>
+        <div style="font-size: 11px; text-align: center;">
+          Tel: ${client.phone}
         </div>
       </div>
 
       <!-- Payment Codes -->
       <div style="margin-bottom: 4mm;">
-        <div style="font-size: 11px; font-weight: bold; margin-bottom: 2mm; border-bottom: 1px solid #000; padding-bottom: 1mm;">
+        <div style="font-size: 12px; font-weight: bold; margin-bottom: 3mm; text-align: center; border-bottom: 2px solid #000; padding-bottom: 1mm;">
           CODES DE PAIEMENT
         </div>
-        ${client.paymentCodes.length > 0 ? client.paymentCodes.map(code => `
+        ${client.paymentCodes.length > 0 ? client.paymentCodes.map((code, index) => `
           <div style="
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            margin-bottom: 2mm; 
-            padding: 1mm 0;
-            border-bottom: 1px dotted #ccc;
+            margin-bottom: 3mm; 
+            padding: 2mm;
+            border: 1px solid #ddd;
+            border-radius: 2mm;
+            background: ${index % 2 === 0 ? '#f5f5f5' : '#fff'};
           ">
-            <div style="font-size: 10px; font-weight: bold;">
-              ${code.service.name}:
+            <div style="font-size: 11px; font-weight: bold; margin-bottom: 1mm; text-align: center;">
+              ${code.service.name}
             </div>
             <div style="
               font-family: 'Source Code Pro', monospace; 
-              font-size: 12px; 
+              font-size: 14px; 
               font-weight: bold;
-              letter-spacing: 0.5px;
+              letter-spacing: 1px;
+              text-align: center;
+              padding: 1mm;
+              border: 1px dashed #666;
+              background: white;
             ">
               ${code.code}
             </div>
           </div>
-        `).join('') : '<div style="font-size: 10px; text-align: center; color: #666;">Aucun code de paiement</div>'}
+        `).join('') : '<div style="font-size: 11px; text-align: center; color: #666; padding: 4mm;">Aucun code de paiement</div>'}
       </div>
 
       <!-- Summary -->
@@ -84,13 +88,13 @@ export function createThermalPrint(client: ClientWithCodes, settings?: PrintSett
         text-align: center; 
         margin-top: 4mm; 
         padding-top: 2mm; 
-        border-top: 1px dashed #000;
-        font-size: 9px;
-        color: #666;
+        border-top: 2px dashed #000;
+        font-size: 10px;
       ">
-        <div>Imprime le: ${dateStr} a ${timeStr}</div>
-        <div style="margin-top: 1mm;">Merci pour votre confiance</div>
-        <div style="margin-top: 2mm; font-size: 8px;">
+        <div style="margin-bottom: 2mm; font-weight: bold;">
+          Merci pour votre confiance
+        </div>
+        <div style="font-size: 8px; color: #666;">
           ================================
         </div>
       </div>

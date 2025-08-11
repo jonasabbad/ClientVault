@@ -54,6 +54,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { paymentCodes, ...clientData } = validation.data;
       
+      // Check for duplicate client name
+      const existingClient = await storage.getClientByName(clientData.name);
+      if (existingClient) {
+        return res.status(400).json({ 
+          message: `Client with name "${clientData.name}" already exists` 
+        });
+      }
+      
       // Create client
       const client = await storage.createClient(clientData);
       
@@ -92,6 +100,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { paymentCodes, ...clientData } = validation.data;
+      
+      // Check for duplicate client name (excluding current client)
+      const existingClient = await storage.getClientByName(clientData.name);
+      if (existingClient && existingClient.id !== req.params.id) {
+        return res.status(400).json({ 
+          message: `Client with name "${clientData.name}" already exists` 
+        });
+      }
       
       // Update client
       const client = await storage.updateClient(req.params.id, clientData);
