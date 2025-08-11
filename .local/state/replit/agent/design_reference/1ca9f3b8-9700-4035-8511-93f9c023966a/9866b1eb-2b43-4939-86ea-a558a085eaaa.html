@@ -1,0 +1,739 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#1976D2',
+                        'secondary': '#424242',
+                        'inwi': '#8E24AA',
+                        'orange': '#FF5722',
+                        'telecom': '#2196F3',
+                        'water': '#00BCD4',
+                        'gas': '#FFC107',
+                        'electricity': '#4CAF50'
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            
+            .thermal-print {
+                width: 80mm !important;
+                font-size: 12px !important;
+                line-height: 1.2 !important;
+            }
+            
+            .a4-print {
+                width: 210mm !important;
+                min-height: 297mm !important;
+                padding: 20mm !important;
+            }
+        }
+        
+        .print-only { display: none; }
+        
+        .service-badge {
+            transition: all 0.2s ease;
+        }
+        
+        .service-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .client-card {
+            transition: all 0.2s ease;
+        }
+        
+        .client-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .search-highlight {
+            background-color: #FFF3CD;
+            padding: 1px 3px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-inter">
+    <!-- @COMPONENT: Layout Container -->
+    <div class="min-h-screen flex">
+        
+        <!-- @COMPONENT: Sidebar Navigation -->
+        <aside class="w-64 bg-white shadow-lg border-r border-gray-200 no-print">
+            <div class="p-6 border-b border-gray-200">
+                <h1 class="text-xl font-bold text-gray-900">Customer Manager</h1>
+                <p class="text-sm text-gray-500 mt-1">Client & Payment System</p>
+            </div>
+            
+            <nav class="p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-primary bg-blue-50 rounded-lg font-medium" data-bind="activeTab === 'dashboard'">
+                            <i data-feather="home" class="w-5 h-5 mr-3"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors" data-event="click:switchTab('clients')">
+                            <i data-feather="users" class="w-5 h-5 mr-3"></i>
+                            Clients
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors" data-event="click:switchTab('services')">
+                            <i data-feather="grid" class="w-5 h-5 mr-3"></i>
+                            Services
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors" data-event="click:switchTab('exports')">
+                            <i data-feather="download" class="w-5 h-5 mr-3"></i>
+                            Export Data
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors" data-event="click:switchTab('settings')">
+                            <i data-feather="settings" class="w-5 h-5 mr-3"></i>
+                            Settings
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="absolute bottom-4 left-4 right-4">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-900 mb-2">Firebase Status</h3>
+                    <div class="flex items-center">
+                        <div class="w-2 h-2 bg-green-500 rounded-full mr-2" data-bind="firebase.connected"></div>
+                        <span class="text-xs text-gray-600">Connected</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <!-- @END_COMPONENT: Sidebar Navigation -->
+
+        <!-- @COMPONENT: Main Content Area -->
+        <main class="flex-1 overflow-hidden">
+            
+            <!-- @COMPONENT: Header Bar -->
+            <header class="bg-white shadow-sm border-b border-gray-200 no-print">
+                <div class="px-6 py-4 flex items-center justify-between">
+                    <div class="flex-1 max-w-2xl">
+                        <!-- @COMPONENT: Smart Search Bar -->
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-feather="search" class="w-5 h-5 text-gray-400"></i>
+                            </div>
+                            <input type="text" 
+                                   placeholder="Search by name, phone, or payment code..." 
+                                   class="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                   data-bind="searchQuery"
+                                   data-event="input:handleSmartSearch">
+                            <div class="absolute right-2 top-2">
+                                <kbd class="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-300 rounded">⌘K</kbd>
+                            </div>
+                        </div>
+                        <!-- @END_COMPONENT: Smart Search Bar -->
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <button class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-medium transition-colors" data-event="click:openClientModal">
+                            <i data-feather="plus" class="w-4 h-4 mr-2 inline"></i>
+                            Add Client
+                        </button>
+                        
+                        <div class="relative">
+                            <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors" data-event="click:toggleNotifications">
+                                <i data-feather="bell" class="w-5 h-5"></i>
+                                <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">3</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Search Results Dropdown -->
+                <div class="px-6 pb-4 hidden" data-bind="searchResults.length > 0">
+                    <div class="bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                        <!-- @MAP: searchResults.map(result => ( -->
+                        <div class="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors" data-event="click:selectClient">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium text-gray-900" data-bind="result.name">Ahmed Bennani</h4>
+                                    <p class="text-sm text-gray-600" data-bind="result.phone">+212 6XX XXX XXX</p>
+                                </div>
+                                <div class="flex space-x-1">
+                                    <span class="px-2 py-1 text-xs font-medium bg-inwi text-white rounded" data-mock="true">Inwi</span>
+                                    <span class="px-2 py-1 text-xs font-medium bg-orange text-white rounded" data-mock="true">Orange</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+            </header>
+            <!-- @END_COMPONENT: Header Bar -->
+
+            <!-- @COMPONENT: Dashboard Content -->
+            <div class="p-6 overflow-y-auto h-full">
+                
+                <!-- Dashboard Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-primary bg-opacity-10 rounded-lg">
+                                <i data-feather="users" class="w-6 h-6 text-primary"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Total Clients</p>
+                                <p class="text-2xl font-bold text-gray-900" data-bind="stats.totalClients">247</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-green-100 rounded-lg">
+                                <i data-feather="credit-card" class="w-6 h-6 text-green-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Payment Codes</p>
+                                <p class="text-2xl font-bold text-gray-900" data-bind="stats.totalCodes">1,842</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-blue-100 rounded-lg">
+                                <i data-feather="activity" class="w-6 h-6 text-blue-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Active Services</p>
+                                <p class="text-2xl font-bold text-gray-900" data-bind="stats.activeServices">8</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-purple-100 rounded-lg">
+                                <i data-feather="search" class="w-6 h-6 text-purple-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Daily Searches</p>
+                                <p class="text-2xl font-bold text-gray-900" data-bind="stats.dailySearches">156</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity & Quick Actions -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    
+                    <!-- Recent Clients -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200">
+                        <div class="p-6 border-b border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-lg font-semibold text-gray-900">Recent Clients</h2>
+                                <button class="text-primary hover:text-blue-700 font-medium text-sm">View All</button>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6">
+                            <!-- @MAP: recentClients.map(client => ( -->
+                            <div class="client-card flex items-center justify-between p-4 border border-gray-100 rounded-lg mb-4 last:mb-0" data-event="click:viewClient">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                        <span class="font-medium text-gray-700" data-bind="client.initials">AB</span>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="font-medium text-gray-900" data-bind="client.name">Ahmed Bennani</h3>
+                                        <p class="text-sm text-gray-600" data-bind="client.phone">+212 612 345 678</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center space-x-2">
+                                    <div class="flex space-x-1">
+                                        <span class="w-3 h-3 bg-inwi rounded-full service-badge" title="Inwi"></span>
+                                        <span class="w-3 h-3 bg-orange rounded-full service-badge" title="Orange"></span>
+                                        <span class="w-3 h-3 bg-water rounded-full service-badge" title="Water"></span>
+                                    </div>
+                                    <span class="text-xs text-gray-500" data-bind="client.codeCount">+3</span>
+                                </div>
+                                
+                                <div class="flex space-x-2">
+                                    <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors" data-event="click:printClient" title="Print">
+                                        <i data-feather="printer" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 text-gray-400 hover:text-primary transition-colors" data-event="click:editClient" title="Edit">
+                                        <i data-feather="edit-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                        <div class="p-6 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Quick Actions</h2>
+                        </div>
+                        
+                        <div class="p-6 space-y-4">
+                            <button class="w-full flex items-center p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-event="click:addClient">
+                                <i data-feather="user-plus" class="w-5 h-5 text-primary mr-3"></i>
+                                <span class="font-medium">Add New Client</span>
+                            </button>
+                            
+                            <button class="w-full flex items-center p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-event="click:bulkImport">
+                                <i data-feather="upload" class="w-5 h-5 text-green-600 mr-3"></i>
+                                <span class="font-medium">Import Clients</span>
+                            </button>
+                            
+                            <button class="w-full flex items-center p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-event="click:exportData">
+                                <i data-feather="download" class="w-5 h-5 text-blue-600 mr-3"></i>
+                                <span class="font-medium">Export to CSV</span>
+                            </button>
+                            
+                            <button class="w-full flex items-center p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-event="click:printReport">
+                                <i data-feather="file-text" class="w-5 h-5 text-purple-600 mr-3"></i>
+                                <span class="font-medium">Generate Report</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Services Overview -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="p-6 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900">Services Overview</h2>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                            <!-- @MAP: services.map(service => ( -->
+                            <div class="text-center">
+                                <div class="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center service-badge" style="background-color: #8E24AA;" data-bind="service.color">
+                                    <i data-feather="smartphone" class="w-8 h-8 text-white"></i>
+                                </div>
+                                <h3 class="font-medium text-gray-900 text-sm" data-bind="service.name">Inwi</h3>
+                                <p class="text-xs text-gray-600" data-bind="service.clientCount">89 clients</p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="w-16 h-16 mx-auto mb-3 bg-orange rounded-full flex items-center justify-center service-badge">
+                                    <i data-feather="smartphone" class="w-8 h-8 text-white"></i>
+                                </div>
+                                <h3 class="font-medium text-gray-900 text-sm">Orange</h3>
+                                <p class="text-xs text-gray-600">76 clients</p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="w-16 h-16 mx-auto mb-3 bg-telecom rounded-full flex items-center justify-center service-badge">
+                                    <i data-feather="smartphone" class="w-8 h-8 text-white"></i>
+                                </div>
+                                <h3 class="font-medium text-gray-900 text-sm">Maroc Telecom</h3>
+                                <p class="text-xs text-gray-600">65 clients</p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="w-16 h-16 mx-auto mb-3 bg-water rounded-full flex items-center justify-center service-badge">
+                                    <i data-feather="droplet" class="w-8 h-8 text-white"></i>
+                                </div>
+                                <h3 class="font-medium text-gray-900 text-sm">Water</h3>
+                                <p class="text-xs text-gray-600">142 clients</p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="w-16 h-16 mx-auto mb-3 bg-gas rounded-full flex items-center justify-center service-badge">
+                                    <i data-feather="flame" class="w-8 h-8 text-white"></i>
+                                </div>
+                                <h3 class="font-medium text-gray-900 text-sm">Gas</h3>
+                                <p class="text-xs text-gray-600">98 clients</p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="w-16 h-16 mx-auto mb-3 bg-electricity rounded-full flex items-center justify-center service-badge">
+                                    <i data-feather="zap" class="w-8 h-8 text-white"></i>
+                                </div>
+                                <h3 class="font-medium text-gray-900 text-sm">Electricity</h3>
+                                <p class="text-xs text-gray-600">134 clients</p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="w-16 h-16 mx-auto mb-3 bg-gray-300 rounded-full flex items-center justify-center service-badge">
+                                    <i data-feather="wifi" class="w-8 h-8 text-gray-600"></i>
+                                </div>
+                                <h3 class="font-medium text-gray-900 text-sm">Internet</h3>
+                                <p class="text-xs text-gray-600">45 clients</p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="w-16 h-16 mx-auto mb-3 bg-gray-200 border-2 border-dashed border-gray-400 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors" data-event="click:addService">
+                                    <i data-feather="plus" class="w-8 h-8 text-gray-600"></i>
+                                </div>
+                                <h3 class="font-medium text-gray-600 text-sm">Add Service</h3>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <!-- @END_COMPONENT: Dashboard Content -->
+
+        </main>
+        <!-- @END_COMPONENT: Main Content Area -->
+    </div>
+
+    <!-- @COMPONENT: Client Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden no-print" data-bind="showClientModal">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-900" data-bind="modalTitle">Add New Client</h2>
+                    <button class="text-gray-400 hover:text-gray-600" data-event="click:closeModal">
+                        <i data-feather="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <form class="p-6 space-y-6" data-event="submit:saveClient">
+                <!-- Client Basic Info -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Client Name *</label>
+                        <input type="text" 
+                               placeholder="Enter client name"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                               data-bind="clientForm.name"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                        <input type="tel" 
+                               placeholder="+212 6XX XXX XXX"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                               data-bind="clientForm.phone"
+                               required>
+                    </div>
+                </div>
+                
+                <!-- Payment Codes Section -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Payment Codes</h3>
+                        <button type="button" 
+                                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                data-event="click:addPaymentCode">
+                            <i data-feather="plus" class="w-4 h-4 mr-2 inline"></i>
+                            Add Code
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4" id="payment-codes-container">
+                        <!-- @MAP: clientForm.paymentCodes.map((code, index) => ( -->
+                        <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Service</label>
+                                <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="code.service">
+                                    <option value="">Select service</option>
+                                    <option value="inwi">Inwi</option>
+                                    <option value="orange">Orange</option>
+                                    <option value="maroc_telecom">Maroc Telecom</option>
+                                    <option value="water">Water</option>
+                                    <option value="gas">Gas</option>
+                                    <option value="electricity">Electricity</option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Code</label>
+                                <input type="text" 
+                                       placeholder="Enter payment code"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                       data-bind="code.value">
+                            </div>
+                            
+                            <div class="flex space-x-2 pt-6">
+                                <button type="button" class="p-2 text-gray-400 hover:text-blue-600" title="Copy" data-event="click:copyCode">
+                                    <i data-feather="copy" class="w-4 h-4"></i>
+                                </button>
+                                <button type="button" class="p-2 text-gray-400 hover:text-red-600" title="Delete" data-event="click:removeCode">
+                                    <i data-feather="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+                
+                <!-- Form Actions -->
+                <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <button type="button" 
+                            class="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            data-event="click:closeModal">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Save Client
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: Client Modal -->
+
+    <!-- @COMPONENT: Print Templates -->
+    <!-- Thermal Receipt Template (80mm) -->
+    <div class="print-only thermal-print" id="thermal-template">
+        <div class="text-center mb-4">
+            <h1 class="text-lg font-bold">CLIENT INFO</h1>
+            <p class="text-xs">Payment Codes Receipt</p>
+            <hr class="my-2">
+        </div>
+        
+        <div class="mb-4">
+            <p class="font-semibold" data-bind="printClient.name">Ahmed Bennani</p>
+            <p class="text-sm" data-bind="printClient.phone">+212 612 345 678</p>
+        </div>
+        
+        <div class="mb-4">
+            <h2 class="font-semibold mb-2">PAYMENT CODES:</h2>
+            <!-- @MAP: printClient.paymentCodes.map(code => ( -->
+            <div class="flex justify-between mb-1 text-sm">
+                <span data-bind="code.service">Inwi:</span>
+                <span data-bind="code.value" class="font-mono">123456789</span>
+            </div>
+            <!-- @END_MAP )) -->
+        </div>
+        
+        <hr class="my-2">
+        <div class="text-center text-xs">
+            <p data-bind="new Date().toLocaleDateString()">Printed: 15/12/2023</p>
+        </div>
+    </div>
+    
+    <!-- A4 Template -->
+    <div class="print-only a4-print" id="a4-template">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold mb-2">Client Information</h1>
+            <p class="text-gray-600">Payment Codes & Contact Details</p>
+        </div>
+        
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4 border-b border-gray-300 pb-2">Client Details</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="font-semibold">Name:</p>
+                    <p class="text-lg" data-bind="printClient.name">Ahmed Bennani</p>
+                </div>
+                <div>
+                    <p class="font-semibold">Phone:</p>
+                    <p class="text-lg" data-bind="printClient.phone">+212 612 345 678</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4 border-b border-gray-300 pb-2">Payment Codes</h2>
+            <div class="space-y-4">
+                <!-- @MAP: printClient.paymentCodes.map(code => ( -->
+                <div class="flex items-center justify-between p-4 border border-gray-200 rounded">
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 rounded-full mr-3" style="background-color: #8E24AA;" data-bind="code.serviceColor"></div>
+                        <span class="font-medium" data-bind="code.service">Inwi</span>
+                    </div>
+                    <span class="font-mono text-lg" data-bind="code.value">123456789</span>
+                </div>
+                <!-- @END_MAP )) -->
+            </div>
+        </div>
+        
+        <div class="text-center text-sm text-gray-600">
+            <p data-bind="new Date().toLocaleDateString()">Generated on 15/12/2023</p>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: Print Templates -->
+
+    <!-- @COMPONENT: Export Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden no-print" data-bind="showExportModal">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">Export Data</h2>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="export_format" value="csv" class="text-primary focus:ring-primary" checked>
+                            <span class="ml-2">CSV (Excel Compatible)</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="export_format" value="pdf" class="text-primary focus:ring-primary">
+                            <span class="ml-2">PDF Report</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Include Fields</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="text-primary focus:ring-primary" checked>
+                            <span class="ml-2">Client Names</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="text-primary focus:ring-primary" checked>
+                            <span class="ml-2">Phone Numbers</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="text-primary focus:ring-primary" checked>
+                            <span class="ml-2">Payment Codes</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="text-primary focus:ring-primary">
+                            <span class="ml-2">Service Types</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <button type="button" 
+                            class="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            data-event="click:closeExportModal">
+                        Cancel
+                    </button>
+                    <button type="button" 
+                            class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            data-event="click:exportData">
+                        Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: Export Modal -->
+
+    <script>
+        (function() {
+            // Initialize Feather Icons
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+
+            // TODO: Implement client management functionality
+            // TODO: Implement smart search with real-time filtering  
+            // TODO: Implement Firebase integration for data persistence
+            // TODO: Implement print functionality for thermal and A4 formats
+            // TODO: Implement export functionality (CSV/PDF)
+            // TODO: Implement payment code validation and uniqueness checking
+            // TODO: Implement service management and color customization
+
+            // Mock data for demonstration
+            const mockData = {
+                stats: {
+                    totalClients: 247,
+                    totalCodes: 1842,
+                    activeServices: 8,
+                    dailySearches: 156
+                },
+                recentClients: [
+                    { 
+                        name: 'Ahmed Bennani', 
+                        phone: '+212 612 345 678', 
+                        initials: 'AB',
+                        codeCount: 3,
+                        services: ['inwi', 'orange', 'water']
+                    },
+                    { 
+                        name: 'Fatima El Ouardi', 
+                        phone: '+212 661 789 123', 
+                        initials: 'FE',
+                        codeCount: 5,
+                        services: ['maroc_telecom', 'gas', 'electricity']
+                    },
+                    { 
+                        name: 'Youssef Alami', 
+                        phone: '+212 678 456 789', 
+                        initials: 'YA',
+                        codeCount: 2,
+                        services: ['orange', 'water']
+                    }
+                ]
+            };
+
+            // Basic modal functionality
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('[data-event*="openClientModal"]')) {
+                    document.querySelector('[data-bind="showClientModal"]').classList.remove('hidden');
+                }
+                
+                if (e.target.closest('[data-event*="closeModal"]')) {
+                    document.querySelector('[data-bind="showClientModal"]').classList.add('hidden');
+                }
+                
+                if (e.target.closest('[data-event*="printClient"]')) {
+                    // TODO: Implement print client functionality
+                    console.log('Print client functionality to be implemented');
+                }
+                
+                if (e.target.closest('[data-event*="copyCode"]')) {
+                    // TODO: Implement copy to clipboard functionality
+                    console.log('Copy code functionality to be implemented');
+                }
+            });
+
+            // Search functionality placeholder
+            document.addEventListener('input', function(e) {
+                if (e.target.matches('[data-bind="searchQuery"]')) {
+                    // TODO: Implement real-time search functionality
+                    console.log('Search query:', e.target.value);
+                }
+            });
+
+            // Form submission placeholder
+            document.addEventListener('submit', function(e) {
+                if (e.target.matches('[data-event*="saveClient"]')) {
+                    e.preventDefault();
+                    // TODO: Implement client save functionality
+                    console.log('Save client functionality to be implemented');
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                    e.preventDefault();
+                    document.querySelector('[data-bind="searchQuery"]').focus();
+                }
+            });
+
+        })();
+    </script>
+
+</body>
+</html>
