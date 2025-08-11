@@ -214,6 +214,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Payment codes CRUD
+  app.post("/api/payment-codes", async (req, res) => {
+    try {
+      const validation = insertPaymentCodeSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid payment code data", 
+          errors: validation.error.errors 
+        });
+      }
+
+      // Check if code is unique for the service
+      const isUnique = await storage.validateUniqueCode(validation.data.serviceId, validation.data.code);
+      if (!isUnique) {
+        return res.status(400).json({ 
+          message: `Payment code ${validation.data.code} already exists for this service` 
+        });
+      }
+
+      const paymentCode = await storage.createPaymentCode(validation.data);
+      res.status(201).json(paymentCode);
+    } catch (error) {
+      console.error("Error creating payment code:", error);
+      res.status(500).json({ message: "Failed to create payment code" });
+    }
+  });
+
+  app.delete("/api/payment-codes/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deletePaymentCode(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Payment code not found" });
+      }
+      res.json({ message: "Payment code deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete payment code" });
+    }
+  });
+
   // Payment code validation
   app.post("/api/payment-codes/validate", async (req, res) => {
     try {

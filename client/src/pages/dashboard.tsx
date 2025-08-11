@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Users, CreditCard, Activity, Search, Printer, Edit2, UserPlus, Upload, Download, FileText } from "lucide-react";
+import { Link } from "wouter";
+import { Plus, Users, CreditCard, Activity, Search, Printer, Edit2, UserPlus, Upload, Download, FileText, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import SearchBar from "@/components/search-bar";
@@ -222,53 +223,58 @@ export default function Dashboard() {
                 {recentClients && recentClients.length > 0 ? (
                   <div className="space-y-4">
                     {recentClients.map((client) => (
-                      <div key={client.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:shadow-md transition-shadow">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="font-medium text-gray-700">
-                              {client.name.split(' ').map(n => n[0]).join('')}
-                            </span>
+                      <Link key={client.id} href={`/clients/${client.id}`}>
+                        <div className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:shadow-md transition-shadow cursor-pointer">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                              <span className="font-medium text-gray-700">
+                                {client.name.split(' ').map(n => n[0]).join('')}
+                              </span>
+                            </div>
+                            <div className="ml-3">
+                              <h3 className="font-medium text-gray-900">{client.name}</h3>
+                              <p className="text-sm text-gray-600">{client.phone}</p>
+                            </div>
                           </div>
-                          <div className="ml-3">
-                            <h3 className="font-medium text-gray-900">{client.name}</h3>
-                            <p className="text-sm text-gray-600">{client.phone}</p>
-                          </div>
-                        </div>
                         
-                        <div className="flex items-center space-x-2">
-                          <div className="flex space-x-1">
-                            {client.paymentCodes.slice(0, 3).map((code) => (
-                              <span
-                                key={code.id}
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: code.service.color }}
-                                title={code.service.name}
-                              />
-                            ))}
+                          <div className="flex items-center space-x-2">
+                            <div className="flex space-x-1">
+                              {client.paymentCodes.slice(0, 3).map((code) => (
+                                <span
+                                  key={code.id}
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: code.service.color }}
+                                  title={code.service.name}
+                                />
+                              ))}
+                            </div>
+                            {client.paymentCodes.length > 3 && (
+                              <span className="text-xs text-gray-500">+{client.paymentCodes.length - 3}</span>
+                            )}
                           </div>
-                          {client.paymentCodes.length > 3 && (
-                            <span className="text-xs text-gray-500">+{client.paymentCodes.length - 3}</span>
-                          )}
-                        </div>
                         
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handlePrintClient(client)}
-                            title="Print"
-                          >
-                            <Printer className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handlePrintClient(client);
+                              }}
+                              title="Print"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (
