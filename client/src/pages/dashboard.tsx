@@ -1,0 +1,386 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Plus, Users, CreditCard, Activity, Search, Printer, Edit2, UserPlus, Upload, Download, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import SearchBar from "@/components/search-bar";
+import ClientModal from "@/components/client-modal";
+import ExportModal from "@/components/export-modal";
+import { useToast } from "@/hooks/use-toast";
+import { type ClientWithCodes, type DashboardStats, type Service } from "@shared/schema";
+
+export default function Dashboard() {
+  const { toast } = useToast();
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [searchResults, setSearchResults] = useState<ClientWithCodes[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
+  const { data: stats } = useQuery<DashboardStats>({
+    queryKey: ["/api/dashboard/stats"],
+  });
+
+  const { data: recentClients } = useQuery<ClientWithCodes[]>({
+    queryKey: ["/api/clients"],
+    select: (data) => data.slice(0, 5), // Get first 5 clients
+  });
+
+  const { data: services } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
+  });
+
+  const handleSearchResults = (results: ClientWithCodes[]) => {
+    setSearchResults(results);
+    setShowSearchResults(true);
+  };
+
+  const handleClearSearch = () => {
+    setSearchResults([]);
+    setShowSearchResults(false);
+  };
+
+  const handlePrintClient = (client: ClientWithCodes) => {
+    // Create a temporary div for printing
+    const printContent = document.createElement('div');
+    printContent.innerHTML = `
+      <div style="font-family: monospace; font-size: 12px; line-height: 1.2; width: 80mm;">
+        <div style="text-align: center; margin-bottom: 16px;">
+          <h1 style="font-size: 16px; font-weight: bold; margin: 0;">CLIENT INFO</h1>
+          <p style="font-size: 10px; margin: 4px 0;">Payment Codes Receipt</p>
+          <hr style="margin: 8px 0;">
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+          <p style="font-weight: bold; margin: 0;">${client.name}</p>
+          <p style="font-size: 11px; margin: 0;">${client.phone}</p>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+          <h2 style="font-weight: bold; margin-bottom: 8px;">PAYMENT CODES:</h2>
+          ${client.paymentCodes.map(code => `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
+              <span>${code.service.name}:</span>
+              <span style="font-family: monospace;">${code.code}</span>
+            </div>
+          `).join('')}
+        </div>
+        
+        <hr style="margin: 8px 0;">
+        <div style="text-align: center; font-size: 10px;">
+          <p>Printed: ${new Date().toLocaleDateString()}</p>
+        </div>
+      </div>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Print Client - ${client.name}</title>
+            <style>
+              @media print {
+                body { margin: 0; padding: 0; }
+                @page { size: 80mm auto; margin: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printContent.innerHTML}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+      printWindow.close();
+    }
+
+    toast({ title: "Print dialog opened" });
+  };
+
+  return (
+    <>
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="px-6 py-4 flex items-center justify-between">
+          <SearchBar onResults={handleSearchResults} onClear={handleClearSearch} />
+          
+          <div className="flex items-center space-x-4">
+            <Button onClick={() => setShowClientModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Client
+            </Button>
+          </div>
+        </div>
+        
+        {/* Search Results */}
+        {showSearchResults && searchResults.length > 0 && (
+          <div className="px-6 pb-4">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+              {searchResults.map((client) => (
+                <div key={client.id} className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900">{client.name}</h4>
+                      <p className="text-sm text-gray-600">{client.phone}</p>
+                    </div>
+                    <div className="flex space-x-1">
+                      {client.paymentCodes.slice(0, 3).map((code) => (
+                        <span
+                          key={code.id}
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: code.service.color }}
+                          title={code.service.name}
+                        />
+                      ))}
+                      {client.paymentCodes.length > 3 && (
+                        <span className="text-xs text-gray-500">+{client.paymentCodes.length - 3}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Main Content */}
+      <div className="p-6 overflow-y-auto h-full">
+        {/* Dashboard Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-primary bg-opacity-10 rounded-lg">
+                  <Users className="w-6 h-6 text-primary" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Clients</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats?.totalClients || 0}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <CreditCard className="w-6 h-6 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Payment Codes</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats?.totalCodes || 0}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <Activity className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Active Services</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats?.activeServices || 0}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <Search className="w-6 h-6 text-purple-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Daily Searches</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats?.dailySearches || 0}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Activity & Quick Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Recent Clients */}
+          <div className="lg:col-span-2">
+            <Card>
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">Recent Clients</h2>
+                  <Button variant="ghost">View All</Button>
+                </div>
+              </div>
+              
+              <CardContent className="p-6">
+                {recentClients && recentClients.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentClients.map((client) => (
+                      <div key={client.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:shadow-md transition-shadow">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="font-medium text-gray-700">
+                              {client.name.split(' ').map(n => n[0]).join('')}
+                            </span>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="font-medium text-gray-900">{client.name}</h3>
+                            <p className="text-sm text-gray-600">{client.phone}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <div className="flex space-x-1">
+                            {client.paymentCodes.slice(0, 3).map((code) => (
+                              <span
+                                key={code.id}
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: code.service.color }}
+                                title={code.service.name}
+                              />
+                            ))}
+                          </div>
+                          {client.paymentCodes.length > 3 && (
+                            <span className="text-xs text-gray-500">+{client.paymentCodes.length - 3}</span>
+                          )}
+                        </div>
+                        
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePrintClient(client)}
+                            title="Print"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No clients yet. Add your first client to get started.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Quick Actions */}
+          <Card>
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+            </div>
+            
+            <CardContent className="p-6 space-y-4">
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start"
+                onClick={() => setShowClientModal(true)}
+              >
+                <UserPlus className="w-5 h-5 text-primary mr-3" />
+                Add New Client
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start"
+                onClick={() => toast({ title: "Bulk import feature coming soon" })}
+              >
+                <Upload className="w-5 h-5 text-green-600 mr-3" />
+                Import Clients
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start"
+                onClick={() => setShowExportModal(true)}
+              >
+                <Download className="w-5 h-5 text-blue-600 mr-3" />
+                Export to CSV
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start"
+                onClick={() => toast({ title: "Report generation feature coming soon" })}
+              >
+                <FileText className="w-5 h-5 text-purple-600 mr-3" />
+                Generate Report
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Services Overview */}
+        <Card>
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Services Overview</h2>
+          </div>
+          
+          <CardContent className="p-6">
+            {services && services.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                {services.map((service) => (
+                  <div key={service.id} className="text-center">
+                    <div 
+                      className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center hover:scale-105 transition-transform cursor-pointer"
+                      style={{ backgroundColor: service.color }}
+                    >
+                      <span className="text-white font-bold text-lg">
+                        {service.name.charAt(0)}
+                      </span>
+                    </div>
+                    <h3 className="font-medium text-gray-900 text-sm">{service.name}</h3>
+                    <p className="text-xs text-gray-600">
+                      {recentClients?.filter(client => 
+                        client.paymentCodes.some(code => code.serviceId === service.id)
+                      ).length || 0} clients
+                    </p>
+                  </div>
+                ))}
+                
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-3 bg-gray-200 border-2 border-dashed border-gray-400 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors">
+                    <Plus className="w-8 h-8 text-gray-600" />
+                  </div>
+                  <h3 className="font-medium text-gray-600 text-sm">Add Service</h3>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Activity className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No services configured yet.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <ClientModal 
+        isOpen={showClientModal} 
+        onClose={() => setShowClientModal(false)} 
+      />
+      
+      <ExportModal 
+        isOpen={showExportModal} 
+        onClose={() => setShowExportModal(false)} 
+      />
+    </>
+  );
+}
