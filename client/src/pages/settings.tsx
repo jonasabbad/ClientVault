@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Save, Database, Bell, Shield, Palette, Globe } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Save, Database, Bell, Shield, Palette, Globe, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Settings() {
   const [settings, setSettings] = useState({
@@ -43,26 +46,118 @@ export default function Settings() {
     retentionDays: 30,
   });
 
+  const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
+  const [connectionMessage, setConnectionMessage] = useState("");
+
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Load settings from Firebase
+  const { data: savedSettings } = useQuery({
+    queryKey: ["/api/settings"],
+  });
+
+  // Save settings mutation
+  const saveSettingsMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("/api/settings", "POST", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({
+        title: "Settings saved",
+        description: "Your preferences have been updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Test Firebase connection mutation
+  const testConnectionMutation = useMutation({
+    mutationFn: () => apiRequest("/api/settings/test-connection", "POST", {}),
+    onSuccess: (data: any) => {
+      setConnectionStatus(data.success ? "success" : "error");
+      setConnectionMessage(data.message);
+    },
+    onError: () => {
+      setConnectionStatus("error");
+      setConnectionMessage("Connection test failed");
+    },
+  });
+
+  // Load saved settings when data is available
+  useEffect(() => {
+    if (savedSettings) {
+      setSettings(prev => ({ ...prev, ...savedSettings }));
+    }
+  }, [savedSettings]);
 
   const handleSave = () => {
-    // In a real app, this would save to backend/database
-    localStorage.setItem("customerManagerSettings", JSON.stringify(settings));
-    
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been updated successfully",
-    });
+    saveSettingsMutation.mutate(settings);
+  };
+
+  const handleTestConnection = () => {
+    setConnectionStatus("testing");
+    setConnectionMessage("");
+    testConnectionMutation.mutate();
   };
 
   const handleReset = () => {
-    // Reset to defaults
-    localStorage.removeItem("customerManagerSettings");
-    window.location.reload();
+    // Reset to defaults and clear from database
+    const defaultSettings = {
+      companyName: "Customer Manager",
+      companyPhone: "",
+      companyAddress: "",
+      emailNotifications: true,
+      smsNotifications: false,
+      pushNotifications: true,
+      theme: "light",
+      language: "en",
+      dateFormat: "dd/mm/yyyy",
+      currency: "MAD",
+      autoLogout: true,
+      sessionTimeout: 60,
+      twoFactorAuth: false,
+      autoBackup: true,
+      backupFrequency: "daily",
+      retentionDays: 30,
+    };
+    setSettings(prev => ({ ...prev, ...defaultSettings }));
+    saveSettingsMutation.mutate(defaultSettings);
   };
 
   const updateSetting = (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const getConnectionStatusIcon = () => {
+    switch (connectionStatus) {
+      case "testing":
+        return <Loader2 className="h-4 w-4 animate-spin text-blue-600" />;
+      case "success":
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case "error":
+        return <XCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return <Database className="h-4 w-4 text-gray-400" />;
+    }
+  };
+
+  const getConnectionStatusBadge = () => {
+    switch (connectionStatus) {
+      case "testing":
+        return <Badge variant="secondary">Testing...</Badge>;
+      case "success":
+        return <Badge variant="default" className="bg-green-100 text-green-700">Connected</Badge>;
+      case "error":
+        return <Badge variant="destructive">Connection Failed</Badge>;
+      default:
+        return <Badge variant="outline">Not Tested</Badge>;
+    }
   };
 
   return (
@@ -149,22 +244,33 @@ export default function Settings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
-              Firebase Configuration
+              Firebase Database
             </CardTitle>
             <CardDescription>
-              Database and authentication settings
+              Firebase project configuration and connection status
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="firebase-project-id">Project ID</Label>
-              <Input
-                id="firebase-project-id"
-                value={settings.firebaseProjectId}
-                onChange={(e) => updateSetting("firebaseProjectId", e.target.value)}
-                placeholder="your-firebase-project-id"
-              />
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                {getConnectionStatusIcon()}
+                <span className="text-sm font-medium">Connection Status</span>
+              </div>
+              {getConnectionStatusBadge()}
             </div>
+            
+            {connectionMessage && (
+              <div className={`p-3 rounded-lg text-sm ${
+                connectionStatus === "success" 
+                  ? "bg-green-50 text-green-700 border border-green-200" 
+                  : connectionStatus === "error"
+                  ? "bg-red-50 text-red-700 border border-red-200"
+                  : "bg-blue-50 text-blue-700 border border-blue-200"
+              }`}>
+                {connectionMessage}
+              </div>
+            )}
+
             <div>
               <Label htmlFor="firebase-api-key">API Key</Label>
               <Input
@@ -172,8 +278,23 @@ export default function Settings() {
                 type="password"
                 value={settings.firebaseApiKey}
                 onChange={(e) => updateSetting("firebaseApiKey", e.target.value)}
-                placeholder="Your Firebase API key"
+                placeholder="Firebase API Key"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Environment: {import.meta.env.VITE_FIREBASE_API_KEY ? "Configured" : "Not Set"}
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="firebase-project-id">Project ID</Label>
+              <Input
+                id="firebase-project-id"
+                value={settings.firebaseProjectId}
+                onChange={(e) => updateSetting("firebaseProjectId", e.target.value)}
+                placeholder="Firebase Project ID"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Environment: {import.meta.env.VITE_FIREBASE_PROJECT_ID ? "Configured" : "Not Set"}
+              </p>
             </div>
             <div>
               <Label htmlFor="firebase-app-id">App ID</Label>
@@ -181,13 +302,31 @@ export default function Settings() {
                 id="firebase-app-id"
                 value={settings.firebaseAppId}
                 onChange={(e) => updateSetting("firebaseAppId", e.target.value)}
-                placeholder="Your Firebase App ID"
+                placeholder="Firebase App ID"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Environment: {import.meta.env.VITE_FIREBASE_APP_ID ? "Configured" : "Not Set"}
+              </p>
             </div>
-            <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
-              <strong>Note:</strong> Firebase credentials are loaded from environment variables. 
-              Changes here won't persist unless updated in your deployment settings.
-            </div>
+            
+            <Button 
+              onClick={handleTestConnection}
+              disabled={testConnectionMutation.isPending || connectionStatus === "testing"}
+              className="w-full"
+              variant="outline"
+            >
+              {testConnectionMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Testing Connection...
+                </>
+              ) : (
+                <>
+                  <Database className="w-4 h-4 mr-2" />
+                  Test Firebase Connection
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
 

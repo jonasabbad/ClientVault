@@ -266,6 +266,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Settings routes
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    try {
+      await storage.saveSettings(req.body);
+      res.json({ message: "Settings saved successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to save settings" });
+    }
+  });
+
+  // Firebase connection test
+  app.post("/api/settings/test-connection", async (req, res) => {
+    try {
+      const { testFirebaseConnection } = await import("./firebase-config");
+      const result = await testFirebaseConnection();
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        message: error instanceof Error ? error.message : "Firebase connection test failed" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

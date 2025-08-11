@@ -1,21 +1,20 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 
+// Server-side Firebase configuration using environment variables
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
+  apiKey: process.env.VITE_FIREBASE_API_KEY || "demo-api-key",
+  authDomain: `${process.env.VITE_FIREBASE_PROJECT_ID || "demo-project"}.firebaseapp.com`,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || "demo-project",
+  storageBucket: `${process.env.VITE_FIREBASE_PROJECT_ID || "demo-project"}.firebasestorage.app`,
   messagingSenderId: "123456789",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID || "demo-app-id",
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Test Firebase connection
+// Test Firebase connection for server
 export const testFirebaseConnection = async (): Promise<{ success: boolean; message: string }> => {
   try {
     // Test Firestore connection by attempting to read from a test collection
@@ -35,4 +34,4 @@ export const testFirebaseConnection = async (): Promise<{ success: boolean; mess
   }
 };
 
-export { app, auth, db };
+export { app, db };
