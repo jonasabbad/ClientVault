@@ -59,7 +59,12 @@ export default function Settings() {
 
   // Save settings mutation
   const saveSettingsMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/settings", "POST", data),
+    mutationFn: (data: any) => 
+      fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({
@@ -78,7 +83,11 @@ export default function Settings() {
 
   // Test Firebase connection mutation
   const testConnectionMutation = useMutation({
-    mutationFn: () => apiRequest("/api/settings/test-connection", "POST", {}),
+    mutationFn: () => 
+      fetch("/api/settings/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }).then(res => res.json()),
     onSuccess: (data: any) => {
       setConnectionStatus(data.success ? "success" : "error");
       setConnectionMessage(data.message);
