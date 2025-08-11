@@ -10,6 +10,7 @@ import ClientModal from "@/components/client-modal";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { type ClientWithCodes } from "@shared/schema";
+import { printThermalReceipt } from "@/components/thermal-print";
 
 export default function Clients() {
   const { toast } = useToast();
@@ -61,63 +62,27 @@ export default function Clients() {
     }
   };
 
-  const handlePrintClient = (client: ClientWithCodes) => {
-    // Create a temporary div for printing
-    const printContent = document.createElement('div');
-    printContent.innerHTML = `
-      <div style="font-family: monospace; font-size: 12px; line-height: 1.2; width: 80mm;">
-        <div style="text-align: center; margin-bottom: 16px;">
-          <h1 style="font-size: 16px; font-weight: bold; margin: 0;">CLIENT INFO</h1>
-          <p style="font-size: 10px; margin: 4px 0;">Payment Codes Receipt</p>
-          <hr style="margin: 8px 0;">
-        </div>
-        
-        <div style="margin-bottom: 16px;">
-          <p style="font-weight: bold; margin: 0;">${client.name}</p>
-          <p style="font-size: 11px; margin: 0;">${client.phone}</p>
-        </div>
-        
-        <div style="margin-bottom: 16px;">
-          <h2 style="font-weight: bold; margin-bottom: 8px;">PAYMENT CODES:</h2>
-          ${client.paymentCodes.map(code => `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
-              <span>${code.service.name}:</span>
-              <span style="font-family: monospace;">${code.code}</span>
-            </div>
-          `).join('')}
-        </div>
-        
-        <hr style="margin: 8px 0;">
-        <div style="text-align: center; font-size: 10px;">
-          <p>Printed: ${new Date().toLocaleDateString()}</p>
-        </div>
-      </div>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Print Client - ${client.name}</title>
-            <style>
-              @media print {
-                body { margin: 0; padding: 0; }
-                @page { size: 80mm auto; margin: 0; }
-              }
-            </style>
-          </head>
-          <body>
-            ${printContent.innerHTML}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-      printWindow.close();
+  const handlePrintClient = async (client: ClientWithCodes) => {
+    try {
+      // Get settings for print header
+      const settingsResponse = await fetch('/api/settings');
+      const settings = settingsResponse.ok ? await settingsResponse.json() : {};
+      
+      printThermalReceipt(client, {
+        companyName: settings.companyName || 'INEX CASH',
+        companyAddress: settings.companyAddress || '',
+        companyPhone: settings.companyPhone || ''
+      });
+      
+      toast({ title: "Thermal receipt opened for printing" });
+    } catch (error) {
+      console.error('Print error:', error);
+      toast({ 
+        title: "Print error", 
+        description: "Could not open print dialog",
+        variant: "destructive" 
+      });
     }
-
-    toast({ title: "Print dialog opened" });
   };
 
   const displayClients = showSearchResults ? searchResults : clients || [];

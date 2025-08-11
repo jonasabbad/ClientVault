@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertPaymentCodeSchema, type InsertPaymentCode } from "@shared/schema";
+import { printThermalReceipt } from "@/components/thermal-print";
 
 export default function ClientDetails() {
   const { id } = useParams();
@@ -125,26 +126,28 @@ export default function ClientDetails() {
     }
   };
 
-  const handlePrint = () => {
-    const printContent = `
-      Client: ${client?.name}
-      Phone: ${client?.phone}
-      Payment Codes:
-      ${client?.paymentCodes?.map((code: any) => `- ${code.service.name}: ${code.code}`).join('\n')}
-    `;
+  const handlePrint = async () => {
+    if (!client) return;
     
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head><title>Client Details - ${client?.name}</title></head>
-          <body style="font-family: monospace; white-space: pre-line;">
-            ${printContent}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
+    try {
+      // Get settings for print header
+      const settingsResponse = await fetch('/api/settings');
+      const settings = settingsResponse.ok ? await settingsResponse.json() : {};
+      
+      printThermalReceipt(client, {
+        companyName: settings.companyName || 'INEX CASH',
+        companyAddress: settings.companyAddress || '',
+        companyPhone: settings.companyPhone || ''
+      });
+      
+      toast({ title: "Thermal receipt opened for printing" });
+    } catch (error) {
+      console.error('Print error:', error);
+      toast({ 
+        title: "Print error", 
+        description: "Could not open print dialog",
+        variant: "destructive" 
+      });
     }
   };
 
