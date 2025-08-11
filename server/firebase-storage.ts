@@ -52,9 +52,10 @@ export class FirebaseStorage implements IStorage {
 
   async getAllClients(): Promise<ClientWithCodes[]> {
     try {
-      const [clientsSnapshot, paymentCodesSnapshot] = await Promise.all([
+      const [clientsSnapshot, paymentCodesSnapshot, servicesSnapshot] = await Promise.all([
         getDocs(collection(db, "clients")),
-        getDocs(collection(db, "paymentCodes"))
+        getDocs(collection(db, "paymentCodes")),
+        getDocs(collection(db, "services"))
       ]);
 
       const clients = clientsSnapshot.docs.map(doc => ({
@@ -67,12 +68,20 @@ export class FirebaseStorage implements IStorage {
         ...doc.data()
       })) as PaymentCode[];
 
+      const services = servicesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Service[];
+
       return clients.map(client => ({
         ...client,
-        paymentCodes: paymentCodes.filter(code => code.clientId === client.id).map(code => ({
-          ...code,
-          service: { id: '', name: '', color: '', icon: '', createdAt: null }
-        }))
+        paymentCodes: paymentCodes.filter(code => code.clientId === client.id).map(code => {
+          const service = services.find(s => s.id === code.serviceId);
+          return {
+            ...code,
+            service: service || { id: '', name: 'Unknown Service', color: '#gray', icon: '', createdAt: null }
+          };
+        })
       }));
     } catch (error) {
       console.error("Error getting clients:", error);
@@ -105,17 +114,24 @@ export class FirebaseStorage implements IStorage {
 
       const client = { id: clientDoc.id, ...clientDoc.data() } as Client;
       
-      const paymentCodesQuery = query(
-        collection(db, "paymentCodes"),
-        where("clientId", "==", id)
-      );
-      const paymentCodesSnapshot = await getDocs(paymentCodesQuery);
+      const [paymentCodesSnapshot, servicesSnapshot] = await Promise.all([
+        getDocs(query(collection(db, "paymentCodes"), where("clientId", "==", id))),
+        getDocs(collection(db, "services"))
+      ]);
       
-      const paymentCodes = paymentCodesSnapshot.docs.map(doc => ({
+      const services = servicesSnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
-        service: { id: '', name: '', color: '', icon: '', createdAt: null }
-      }));
+        ...doc.data()
+      })) as Service[];
+
+      const paymentCodes = paymentCodesSnapshot.docs.map(doc => {
+        const codeData = { id: doc.id, ...doc.data() } as PaymentCode;
+        const service = services.find(s => s.id === codeData.serviceId);
+        return {
+          ...codeData,
+          service: service || { id: '', name: 'Unknown Service', color: '#gray', icon: '', createdAt: null }
+        };
+      });
 
       return {
         ...client,
@@ -384,6 +400,7 @@ export class FirebaseStorage implements IStorage {
       const searchData = {
         ...search,
         id,
+        timestamp: new Date(),
         createdAt: new Date(),
         updatedAt: new Date()
       };

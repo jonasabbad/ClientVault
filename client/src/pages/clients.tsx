@@ -180,21 +180,22 @@ export default function Clients() {
         ) : displayClients.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayClients.map((client) => (
-              <Card key={client.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center">
-                      <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-                        <span className="font-medium text-gray-700">
-                          {client.name.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{client.name}</h3>
-                        <p className="text-sm text-gray-600">{client.phone}</p>
+              <Link key={client.id} href={`/clients/${client.id}`}>
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center">
+                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                          <span className="font-medium text-gray-700">
+                            {client.name.split(' ').map(n => n[0]).join('')}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{client.name}</h3>
+                          <p className="text-sm text-gray-600">{client.phone}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
                   
                   <div className="mb-4">
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Payment Codes</h4>
@@ -218,44 +219,45 @@ export default function Clients() {
                     )}
                   </div>
                   
-                  <div className="flex space-x-2">
-                    <Link href={`/clients/${client.id}`}>
+                    <div className="flex space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        title="View Details"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePrintClient(client);
+                        }}
+                        title="Print"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Printer className="w-4 h-4" />
                       </Button>
-                    </Link>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePrintClient(client)}
-                      title="Print"
-                    >
-                      <Printer className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditClient(client)}
-                      title="Edit"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteClient(client)}
-                      title="Delete"
-                      disabled={deleteClientMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleEditClient(client);
+                        }}
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDeleteClient(client);
+                        }}
+                        title="Delete"
+                        disabled={deleteClientMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         ) : (
