@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Printer, Edit2, Trash2, Search } from "lucide-react";
+import { Link } from "wouter";
+import { Plus, Printer, Edit2, Trash2, Search, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -122,14 +123,14 @@ export default function Clients() {
   const displayClients = showSearchResults ? searchResults : clients || [];
 
   return (
-    <>
+    <div className="bg-white dark:bg-gray-900 min-h-screen">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="px-6 py-4 flex items-center justify-between">
           <SearchBar onResults={handleSearchResults} onClear={handleClearSearch} />
           
           <div className="flex items-center space-x-4">
-            <Button onClick={() => setShowClientModal(true)}>
+            <Button onClick={() => setShowClientModal(true)} className="dark:bg-blue-600 dark:hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" />
               Add Client
             </Button>
@@ -151,8 +152,8 @@ export default function Clients() {
       {/* Main Content */}
       <div className="p-6 overflow-y-auto h-full">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <p className="text-gray-600">Manage your clients and their payment codes</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Clients</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage your clients and their payment codes</p>
         </div>
 
         {isLoading ? (
@@ -218,6 +219,15 @@ export default function Clients() {
                   </div>
                   
                   <div className="flex space-x-2">
+                    <Link href={`/clients/${client.id}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </Link>
                     <Button
                       variant="outline"
                       size="sm"
@@ -280,6 +290,6 @@ export default function Clients() {
         }}
         client={editingClient}
       />
-    </>
+    </div>
   );
 }
