@@ -35,12 +35,15 @@ export default function Sidebar() {
             
             return (
               <li key={item.name}>
-                <Link href={item.href} className={cn(
-                  "flex items-center px-4 py-3 rounded-lg font-medium transition-colors",
-                  isActive 
-                    ? "text-primary bg-blue-50" 
-                    : "text-gray-700 hover:bg-gray-100"
-                )}>
+                <Link 
+                  href={item.href} 
+                  className={cn(
+                    "flex items-center px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer",
+                    isActive 
+                      ? "text-primary bg-blue-50" 
+                      : "text-gray-700 hover:bg-gray-100"
+                  )}
+                >
                   <Icon className="w-5 h-5 mr-3" />
                   {item.name}
                 </Link>
