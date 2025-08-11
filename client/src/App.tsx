@@ -7,6 +7,9 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Clients from "@/pages/clients";
+import Services from "@/pages/services";
+import Export from "@/pages/export";
+import Settings from "@/pages/settings";
 import Sidebar from "@/components/sidebar";
 
 function Router() {
@@ -17,6 +20,9 @@ function Router() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/clients" component={Clients} />
+          <Route path="/services" component={Services} />
+          <Route path="/export" component={Export} />
+          <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
       </main>
