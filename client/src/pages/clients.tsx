@@ -164,18 +164,18 @@ export default function Clients() {
                   
                   <div className="mb-4">
                     <div className="flex items-center space-x-2">
-                      {client.paymentCodes.slice(0, 4).map((code) => (
+                      {(client.paymentCodes || []).slice(0, 4).map((code) => (
                         <div
                           key={code.id}
                           className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: code.service.color }}
-                          title={code.service.name}
+                          style={{ backgroundColor: code.service?.color || '#gray' }}
+                          title={code.service?.name || 'Unknown Service'}
                         />
                       ))}
-                      {client.paymentCodes.length > 4 && (
-                        <span className="text-xs text-gray-500">+{client.paymentCodes.length - 4}</span>
+                      {(client.paymentCodes || []).length > 4 && (
+                        <span className="text-xs text-gray-500">+{(client.paymentCodes || []).length - 4}</span>
                       )}
-                      {client.paymentCodes.length === 0 && (
+                      {(client.paymentCodes || []).length === 0 && (
                         <span className="text-sm text-gray-400">No payment codes</span>
                       )}
                     </div>

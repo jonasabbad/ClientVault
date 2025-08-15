@@ -32,13 +32,43 @@ export default async function handler(req, res) {
   try {
     switch (req.method) {
       case 'GET':
-        // Get all clients
-        const clientsSnapshot = await getDocs(collection(db, "clients"));
+        // Get all clients with their payment codes
+        const [clientsSnapshot, paymentCodesSnapshot, servicesSnapshot] = await Promise.all([
+          getDocs(collection(db, "clients")),
+          getDocs(collection(db, "paymentCodes")),
+          getDocs(collection(db, "services"))
+        ]);
+
         const clients = clientsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
-        res.status(200).json(clients);
+
+        const paymentCodes = paymentCodesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        const services = servicesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        // Combine clients with their payment codes and services
+        const clientsWithCodes = clients.map(client => ({
+          ...client,
+          paymentCodes: paymentCodes
+            .filter(code => code.clientId === client.id)
+            .map(code => {
+              const service = services.find(s => s.id === code.serviceId);
+              return {
+                ...code,
+                service: service || { id: "", name: "Unknown Service", color: "#gray", icon: "" }
+              };
+            })
+        }));
+
+        res.status(200).json(clientsWithCodes);
         break;
 
       case 'POST':
