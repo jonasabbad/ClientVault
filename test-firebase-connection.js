@@ -27,7 +27,7 @@ console.log('- VITE_FIREBASE_PROJECT_ID:', process.env.VITE_FIREBASE_PROJECT_ID 
 console.log('- VITE_FIREBASE_APP_ID:', process.env.VITE_FIREBASE_APP_ID ? '✓ Set' : '✗ Missing');
 
 // Import and test the connection
-import('./server/firebase-config.js')
+import('./server/firebase-config.ts')
   .then(async ({ testFirebaseConnection }) => {
     try {
       const result = await testFirebaseConnection();
