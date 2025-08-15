@@ -347,6 +347,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Firebase connection test
   app.post("/api/settings/test-connection", async (req, res) => {
     try {
+      console.log("Starting Firebase connection test...");
+      
       // Validate environment variables before attempting connection
       const requiredEnvVars = [
         'VITE_FIREBASE_API_KEY',
@@ -356,7 +358,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
       
+      console.log("Environment variables check:", {
+        apiKey: !!process.env.VITE_FIREBASE_API_KEY,
+        projectId: !!process.env.VITE_FIREBASE_PROJECT_ID,
+        appId: !!process.env.VITE_FIREBASE_APP_ID,
+        missingVars
+      });
+      
       if (missingVars.length > 0) {
+        console.log("Missing environment variables:", missingVars);
         return res.status(400).json({
           success: false,
           message: "Missing required Firebase environment variables",
@@ -371,7 +381,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      console.log("Importing firebase-config...");
       const { testFirebaseConnection } = await import("./firebase-config");
+      console.log("Running Firebase connection test...");
       const result = await testFirebaseConnection();
       
       // Log the test result for debugging
@@ -385,7 +397,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: error instanceof Error ? error.message : "Firebase connection test failed",
         details: {
           error: error instanceof Error ? error.message : "Unknown error",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          stack: error instanceof Error ? error.stack : undefined
         }
       });
     }
