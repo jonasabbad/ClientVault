@@ -30,6 +30,13 @@ export default function ClientDetails() {
   // Fetch client data
   const { data: client, isLoading } = useQuery<ClientWithCodes>({
     queryKey: ["/api/clients", id],
+    queryFn: async () => {
+      const response = await fetch(`/api/clients?id=${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch client');
+      }
+      return response.json();
+    },
   });
 
   // Fetch services for payment code creation
@@ -40,7 +47,7 @@ export default function ClientDetails() {
   // Delete client mutation
   const deleteClientMutation = useMutation({
     mutationFn: () =>
-      fetch(`/api/clients/${id}`, {
+      fetch(`/api/clients?id=${id}`, {
         method: "DELETE",
       }),
     onSuccess: () => {

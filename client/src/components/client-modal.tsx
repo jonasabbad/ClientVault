@@ -53,7 +53,7 @@ export default function ClientModal({ isOpen, onClose, client }: ClientModalProp
 
   const updateClientMutation = useMutation({
     mutationFn: async (data: ClientForm) => {
-      const response = await apiRequest("PUT", `/api/clients/${client!.id}`, data);
+      const response = await apiRequest("PUT", `/api/clients`, { id: client!.id, ...data });
       return response.json();
     },
     onSuccess: () => {

@@ -14,10 +14,22 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+let app, db;
+
+try {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  console.log('Firebase initialized successfully in client details API');
+} catch (error) {
+  console.error('Firebase initialization error in client details API:', error);
+  throw error;
+}
 
 export default async function handler(req, res) {
+  console.log(`[${new Date().toISOString()}] ${req.method} /api/clients/[id] - Starting request`);
+  console.log('Request query:', req.query);
+  console.log('Request method:', req.method);
+  
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, DELETE, OPTIONS');
@@ -32,21 +44,28 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
+    console.log('No client ID provided');
     return res.status(400).json({ 
       message: 'Client ID is required' 
     });
   }
 
+  console.log('Processing request for client ID:', id);
+
   try {
     switch (req.method) {
       case 'GET':
+        console.log('Getting client details for ID:', id);
+        
         // Get client with payment codes
         const clientDoc = await getDoc(doc(db, "clients", id));
         if (!clientDoc.exists()) {
+          console.log('Client not found in Firebase:', id);
           return res.status(404).json({ message: "Client not found" });
         }
 
         const client = { id: clientDoc.id, ...clientDoc.data() };
+        console.log('Client found:', { id: client.id, name: client.name });
         
         // Get payment codes for this client
         const paymentCodesQuery = query(
@@ -54,6 +73,7 @@ export default async function handler(req, res) {
           where("clientId", "==", id)
         );
         const paymentCodesSnapshot = await getDocs(paymentCodesQuery);
+        console.log('Found payment codes:', paymentCodesSnapshot.size);
         
         // Get all services
         const servicesSnapshot = await getDocs(collection(db, "services"));
@@ -61,6 +81,7 @@ export default async function handler(req, res) {
           id: doc.id,
           ...doc.data()
         }));
+        console.log('Found services:', services.length);
 
         // Combine payment codes with service information
         const paymentCodes = paymentCodesSnapshot.docs.map(doc => {
@@ -77,10 +98,18 @@ export default async function handler(req, res) {
           paymentCodes
         };
 
+        console.log('Returning client with codes:', {
+          id: clientWithCodes.id,
+          name: clientWithCodes.name,
+          paymentCodesCount: clientWithCodes.paymentCodes.length
+        });
+
         res.status(200).json(clientWithCodes);
         break;
 
       case 'PUT':
+        console.log('Updating client:', id);
+        
         // Update client
         const { name, phone, paymentCodes = [] } = req.body;
         
@@ -121,10 +150,13 @@ export default async function handler(req, res) {
           });
         }
 
+        console.log('Client updated successfully:', id);
         res.status(200).json({ message: "Client updated successfully" });
         break;
 
       case 'DELETE':
+        console.log('Deleting client:', id);
+        
         // Delete client and associated payment codes
         const codesToDeleteQuery = query(
           collection(db, "paymentCodes"),
@@ -137,19 +169,30 @@ export default async function handler(req, res) {
         }
 
         await deleteDoc(doc(db, "clients", id));
+        console.log('Client deleted successfully:', id);
         res.status(200).json({ message: "Client deleted successfully" });
         break;
 
       default:
+        console.log('Method not allowed:', req.method);
         res.status(405).json({ 
           message: 'Method not allowed' 
         });
     }
   } catch (error) {
-    console.error('Error in client API:', error);
+    console.error('Error in client details API:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Request query:', req.query);
+    console.error('Request method:', req.method);
+    
     res.status(500).json({ 
       message: 'Internal server error',
-      error: error.message 
+      error: error.message,
+      details: {
+        timestamp: new Date().toISOString(),
+        method: req.method,
+        clientId: id
+      }
     });
   }
 } 
