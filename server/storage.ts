@@ -88,7 +88,7 @@ export class MemStorage implements IStorage {
   }
 
   async getClientByName(name: string): Promise<Client | undefined> {
-    for (const client of this.clients.values()) {
+    for (const client of Array.from(this.clients.values())) {
       if (client.name === name) {
         return client;
       }
