@@ -27,6 +27,33 @@ export default function ClientDetails() {
   const [isAddCodeDialogOpen, setIsAddCodeDialogOpen] = useState(false);
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
 
+  // Helper function to convert Firestore timestamps
+  const convertTimestamps = (data: any): any => {
+    if (data === null || data === undefined) {
+      return data;
+    }
+    
+    if (typeof data === 'object' && data.constructor === Object) {
+      // Check if this is a Firestore timestamp
+      if (data.type === 'firestore/timestamp/1.0' && typeof data.seconds === 'number') {
+        return new Date(data.seconds * 1000 + (data.nanoseconds || 0) / 1000000);
+      }
+      
+      // Recursively convert object properties
+      const converted: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        converted[key] = convertTimestamps(value);
+      }
+      return converted;
+    }
+    
+    if (Array.isArray(data)) {
+      return data.map(convertTimestamps);
+    }
+    
+    return data;
+  };
+
   // Fetch client data
   const { data: client, isLoading } = useQuery<ClientWithCodes>({
     queryKey: ["/api/clients", id],
@@ -35,7 +62,8 @@ export default function ClientDetails() {
       if (!response.ok) {
         throw new Error('Failed to fetch client');
       }
-      return response.json();
+      const data = await response.json();
+      return convertTimestamps(data);
     },
   });
 

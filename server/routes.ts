@@ -9,6 +9,33 @@ import {
   clientFormSchema
 } from "@shared/schema";
 
+// Helper function to convert Firestore timestamps to JavaScript Date objects
+function convertTimestamps(data: any): any {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  
+  if (typeof data === 'object' && data.constructor === Object) {
+    // Check if this is a Firestore timestamp
+    if (data.type === 'firestore/timestamp/1.0' && typeof data.seconds === 'number') {
+      return new Date(data.seconds * 1000 + (data.nanoseconds || 0) / 1000000);
+    }
+    
+    // Recursively convert object properties
+    const converted: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      converted[key] = convertTimestamps(value);
+    }
+    return converted;
+  }
+  
+  if (Array.isArray(data)) {
+    return data.map(convertTimestamps);
+  }
+  
+  return data;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats
   app.get("/api/dashboard/stats", async (req, res) => {
@@ -24,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/clients", async (req, res) => {
     try {
       const clients = await storage.getAllClients();
-      res.json(clients);
+      res.json(convertTimestamps(clients));
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch clients" });
     }

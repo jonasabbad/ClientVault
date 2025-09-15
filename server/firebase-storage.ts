@@ -40,6 +40,17 @@ function convertTimestamps(data: any): any {
   
   return data;
 }
+
+// Helper function to serialize data with proper timestamp conversion for JSON response
+function serializeForResponse(data: any): any {
+  const converted = convertTimestamps(data);
+  return JSON.parse(JSON.stringify(converted, (key, value) => {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    return value;
+  }));
+}
 import { db } from "./firebase-config";
 import type { 
   Client, 
