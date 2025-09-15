@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowLeft, Edit, Trash2, Plus, Phone, User, CreditCard, Calendar, Printer, Copy, Check } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Plus, Phone, User, CreditCard, Calendar, Printer, Copy, Check, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,6 +26,11 @@ export default function ClientDetails() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddCodeDialogOpen, setIsAddCodeDialogOpen] = useState(false);
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  
+  // Pagination and search state for payment codes
+  const [currentPage, setCurrentPage] = useState(1);
+  const [codesPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Helper function to convert Firestore timestamps
   const convertTimestamps = (data: any): any => {
@@ -241,6 +246,16 @@ export default function ClientDetails() {
     );
   }
 
+  // Filter and paginate payment codes
+  const filteredCodes = client.paymentCodes?.filter(code => 
+    code.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    code.service?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+  
+  const totalPages = Math.ceil(filteredCodes.length / codesPerPage);
+  const startIndex = (currentPage - 1) * codesPerPage;
+  const currentPageCodes = filteredCodes.slice(startIndex, startIndex + codesPerPage);
+
   return (
     <div className="p-6 bg-white dark:bg-gray-900 min-h-screen">
       {/* Header */}
@@ -316,7 +331,7 @@ export default function ClientDetails() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 dark:text-gray-100">
                   <CreditCard className="w-5 h-5" />
-                  Payment Codes ({client.paymentCodes?.length || 0})
+                  Payment Codes ({filteredCodes.length})
                 </CardTitle>
                 <Dialog open={isAddCodeDialogOpen} onOpenChange={setIsAddCodeDialogOpen}>
                   <DialogTrigger asChild>
@@ -397,11 +412,30 @@ export default function ClientDetails() {
                   </DialogContent>
                 </Dialog>
               </div>
+              
+              {/* Search Input */}
+              {filteredCodes.length > 0 && (
+                <div className="mt-4">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <Input
+                      placeholder="Search payment codes or services..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1); // Reset to first page when searching
+                      }}
+                      className="pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent>
-              {client?.paymentCodes && client.paymentCodes.length > 0 ? (
-                <div className="space-y-3">
-                  {client.paymentCodes.map((code) => (
+              {filteredCodes.length > 0 ? (
+                <>
+                  <div className="space-y-3">
+                    {currentPageCodes.map((code) => (
                     <div key={code.id} className="flex items-center justify-between p-4 border rounded-lg dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
                       <div className="flex items-center gap-3">
                         <div
@@ -441,6 +475,55 @@ export default function ClientDetails() {
                     </div>
                   ))}
                 </div>
+                
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t dark:border-gray-600">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Showing {startIndex + 1}-{Math.min(startIndex + codesPerPage, filteredCodes.length)} of {filteredCodes.length} codes
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="dark:border-gray-600 dark:text-gray-100"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Previous
+                      </Button>
+                      <div className="flex items-center space-x-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className={`w-8 h-8 p-0 ${
+                              currentPage === page 
+                                ? "dark:bg-blue-600 dark:hover:bg-blue-700" 
+                                : "dark:border-gray-600 dark:text-gray-100"
+                            }`}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="dark:border-gray-600 dark:text-gray-100"
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                </>
               ) : (
                 <div className="text-center py-8">
                   <CreditCard className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
