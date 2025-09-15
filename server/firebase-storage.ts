@@ -13,6 +13,33 @@ import {
   setDoc,
   limit 
 } from "firebase/firestore";
+
+// Helper function to convert Firestore timestamps to JavaScript Date objects
+function convertTimestamps(data: any): any {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  
+  if (typeof data === 'object' && data.constructor === Object) {
+    // Check if this is a Firestore timestamp
+    if (data.type === 'firestore/timestamp/1.0' && typeof data.seconds === 'number') {
+      return new Date(data.seconds * 1000 + (data.nanoseconds || 0) / 1000000);
+    }
+    
+    // Recursively convert object properties
+    const converted: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      converted[key] = convertTimestamps(value);
+    }
+    return converted;
+  }
+  
+  if (Array.isArray(data)) {
+    return data.map(convertTimestamps);
+  }
+  
+  return data;
+}
 import { db } from "./firebase-config";
 import type { 
   Client, 
@@ -59,20 +86,17 @@ export class FirebaseStorage implements IStorage {
         getDocs(collection(db, "services"))
       ]);
 
-      const clients = clientsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Client[];
+      const clients = clientsSnapshot.docs.map(doc => 
+        convertTimestamps({ id: doc.id, ...doc.data() })
+      ) as Client[];
 
-      const paymentCodes = paymentCodesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as PaymentCode[];
+      const paymentCodes = paymentCodesSnapshot.docs.map(doc => 
+        convertTimestamps({ id: doc.id, ...doc.data() })
+      ) as PaymentCode[];
 
-      const services = servicesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Service[];
+      const services = servicesSnapshot.docs.map(doc => 
+        convertTimestamps({ id: doc.id, ...doc.data() })
+      ) as Service[];
 
       return clients.map(client => ({
         ...client,
@@ -134,20 +158,19 @@ export class FirebaseStorage implements IStorage {
         return undefined;
       }
 
-      const client = { id: clientDoc.id, ...clientDoc.data() } as Client;
+      const client = convertTimestamps({ id: clientDoc.id, ...clientDoc.data() }) as Client;
       
       const [paymentCodesSnapshot, servicesSnapshot] = await Promise.all([
         getDocs(query(collection(db, "paymentCodes"), where("clientId", "==", id))),
         getDocs(collection(db, "services"))
       ]);
       
-      const services = servicesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Service[];
+      const services = servicesSnapshot.docs.map(doc => 
+        convertTimestamps({ id: doc.id, ...doc.data() })
+      ) as Service[];
 
       const paymentCodes = paymentCodesSnapshot.docs.map(doc => {
-        const codeData = { id: doc.id, ...doc.data() } as PaymentCode;
+        const codeData = convertTimestamps({ id: doc.id, ...doc.data() }) as PaymentCode;
         const service = services.find(s => s.id === codeData.serviceId);
         return {
           ...codeData,

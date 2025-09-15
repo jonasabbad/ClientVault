@@ -31,7 +31,7 @@ export default function ClientDetails() {
   const { data: client, isLoading } = useQuery<ClientWithCodes>({
     queryKey: ["/api/clients", id],
     queryFn: async () => {
-      const response = await fetch(`/api/clients?id=${id}`);
+      const response = await fetch(`/api/clients/${id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch client');
       }
@@ -47,7 +47,7 @@ export default function ClientDetails() {
   // Delete client mutation
   const deleteClientMutation = useMutation({
     mutationFn: () =>
-      fetch(`/api/clients?id=${id}`, {
+      fetch(`/api/clients/${id}`, {
         method: "DELETE",
       }),
     onSuccess: () => {
